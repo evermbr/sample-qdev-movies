@@ -5,11 +5,183 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Free Movies This Month</title>
     <link rel="stylesheet" th:href="@{/css/movies.css}">
+    <style>
+        /* Pirate-themed search form styles */
+        .search-container {
+            background: linear-gradient(135deg, #8B4513, #A0522D);
+            border: 3px solid #654321;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .search-title {
+            color: #FFD700;
+            text-align: center;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .search-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: end;
+            justify-content: center;
+        }
+        
+        .search-field {
+            display: flex;
+            flex-direction: column;
+            min-width: 150px;
+        }
+        
+        .search-field label {
+            color: #FFD700;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        
+        .search-field input {
+            padding: 8px 12px;
+            border: 2px solid #654321;
+            border-radius: 8px;
+            background: #FFF8DC;
+            font-size: 14px;
+        }
+        
+        .search-field input:focus {
+            outline: none;
+            border-color: #FFD700;
+            box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+        }
+        
+        .search-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: end;
+        }
+        
+        .btn-search, .btn-clear {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-search {
+            background: #FFD700;
+            color: #654321;
+        }
+        
+        .btn-search:hover {
+            background: #FFA500;
+            transform: translateY(-2px);
+        }
+        
+        .btn-clear {
+            background: #CD853F;
+            color: white;
+        }
+        
+        .btn-clear:hover {
+            background: #A0522D;
+            transform: translateY(-2px);
+        }
+        
+        .search-results {
+            margin-top: 20px;
+        }
+        
+        .search-message {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        
+        .search-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .search-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .search-message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        
+        @media (max-width: 768px) {
+            .search-form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-field {
+                min-width: auto;
+            }
+            
+            .search-buttons {
+                justify-content: center;
+                margin-top: 10px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>Free Movies This Month</h1>
-        <div class="movies-grid">
+        
+        <!-- Pirate-themed Search Form -->
+        <div class="search-container">
+            <h2 class="search-title">🏴‍☠️ Search the Treasure Chest! 🏴‍☠️</h2>
+            <form class="search-form" id="movieSearchForm">
+                <div class="search-field">
+                    <label for="searchName">Movie Name:</label>
+                    <input type="text" id="searchName" name="name" placeholder="Enter movie name, matey!">
+                </div>
+                
+                <div class="search-field">
+                    <label for="searchId">Movie ID:</label>
+                    <input type="number" id="searchId" name="id" placeholder="Enter ID number" min="1">
+                </div>
+                
+                <div class="search-field">
+                    <label for="searchGenre">Genre:</label>
+                    <input type="text" id="searchGenre" name="genre" placeholder="Drama, Action, etc.">
+                </div>
+                
+                <div class="search-buttons">
+                    <button type="submit" class="btn-search">⚓ Search!</button>
+                    <button type="button" class="btn-clear" onclick="clearSearch()">🧹 Clear</button>
+                </div>
+            </form>
+            
+            <!-- Search Results Message -->
+            <div id="searchMessage" class="search-message" style="display: none;"></div>
+        </div>
+        
+        <!-- Movies Grid -->
+        <div class="movies-grid" id="moviesGrid">
             <div class="movie-card" th:each="movie : ${movies}">
                 <div class="movie-icon" th:text="${movie.icon}">🎬</div>
                 <h3 th:text="${movie.movieName}">Movie Title</h3>
@@ -30,5 +202,155 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // Pirate-themed movie search functionality
+        document.getElementById('movieSearchForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            searchMovies();
+        });
+
+        function searchMovies() {
+            const name = document.getElementById('searchName').value.trim();
+            const id = document.getElementById('searchId').value.trim();
+            const genre = document.getElementById('searchGenre').value.trim();
+            
+            // Check if at least one search parameter is provided
+            if (!name && !id && !genre) {
+                showMessage('Arrr! Ye need to enter at least one search parameter, matey!', 'error');
+                return;
+            }
+            
+            // Show loading message
+            showMessage('🔍 Searching the seven seas for yer movies...', 'info');
+            
+            // Build query parameters
+            const params = new URLSearchParams();
+            if (name) params.append('name', name);
+            if (id) params.append('id', id);
+            if (genre) params.append('genre', genre);
+            
+            // Make the search request
+            fetch(`/movies/search?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.movies && data.movies.length > 0) {
+                            showMessage(data.message, 'success');
+                            displaySearchResults(data.movies);
+                        } else {
+                            showMessage(data.message, 'info');
+                            displaySearchResults([]);
+                        }
+                    } else {
+                        showMessage(data.message, 'error');
+                        displaySearchResults([]);
+                    }
+                })
+                .catch(error => {
+                    console.error('Search error:', error);
+                    showMessage('Blimey! Something went wrong with the search. Try again later, ye scallywag!', 'error');
+                    displaySearchResults([]);
+                });
+        }
+
+        function displaySearchResults(movies) {
+            const moviesGrid = document.getElementById('moviesGrid');
+            
+            if (movies.length === 0) {
+                moviesGrid.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">No movies to display, matey!</p>';
+                return;
+            }
+            
+            // Generate movie cards HTML
+            let moviesHtml = '';
+            movies.forEach(movie => {
+                const stars = generateStars(movie.imdbRating);
+                moviesHtml += `
+                    <div class="movie-card">
+                        <div class="movie-icon">${getMovieIcon(movie.movieName)}</div>
+                        <h3>${escapeHtml(movie.movieName)}</h3>
+                        <div class="movie-details">
+                            <p class="director">Director: <span>${escapeHtml(movie.director)}</span></p>
+                            <p class="year">Year: <span>${movie.year}</span></p>
+                            <p class="genre">Genre: <span>${escapeHtml(movie.genre)}</span></p>
+                            <p class="duration">Duration: <span>${movie.duration}</span> minutes</p>
+                        </div>
+                        <div class="rating">
+                            <span class="stars">${stars}</span>
+                            <span class="rating-score">${movie.imdbRating.toFixed(1)}/5</span>
+                        </div>
+                        <a href="/movies/${movie.id}/details" class="details-btn">View Details</a>
+                    </div>
+                `;
+            });
+            
+            moviesGrid.innerHTML = moviesHtml;
+        }
+
+        function generateStars(rating) {
+            let stars = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= rating) {
+                    stars += '★';
+                } else if (i - 0.5 === rating) {
+                    stars += '⭐';
+                } else {
+                    stars += '☆';
+                }
+            }
+            return stars;
+        }
+
+        function getMovieIcon(movieName) {
+            // Simple icon mapping - in a real app this would be more sophisticated
+            const icons = ['🎬', '🎭', '🎪', '🎨', '🎯', '🎲', '🎸', '🎺', '🎻', '🎹'];
+            const index = movieName.length % icons.length;
+            return icons[index];
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('searchMessage');
+            messageDiv.textContent = message;
+            messageDiv.className = `search-message ${type}`;
+            messageDiv.style.display = 'block';
+            
+            // Auto-hide success and info messages after 5 seconds
+            if (type === 'success' || type === 'info') {
+                setTimeout(() => {
+                    messageDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        function clearSearch() {
+            // Clear form fields
+            document.getElementById('searchName').value = '';
+            document.getElementById('searchId').value = '';
+            document.getElementById('searchGenre').value = '';
+            
+            // Hide search message
+            document.getElementById('searchMessage').style.display = 'none';
+            
+            // Reload the page to show all movies again
+            window.location.reload();
+        }
+
+        // Allow Enter key to trigger search in input fields
+        document.querySelectorAll('#movieSearchForm input').forEach(input => {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    searchMovies();
+                }
+            });
+        });
+    </script>
 </body>
 </html>
